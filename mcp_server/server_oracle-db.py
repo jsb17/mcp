@@ -1,13 +1,20 @@
+"""
+Oracle DB MCP 서버 - Oracle DB에 접근 및 조작
+"""
+
 import os
+import sys
 import json
 import logging
-import asyncio
 from typing import Any, Dict, List
 
-import aiohttp
-import oracledb
+import aiohttp # 비동기 HTTP 클라이언트(Ollama API 호출용)
 from dotenv import load_dotenv
 from fastmcp import FastMCP
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utility.utils import get_connection, strip_code_block, clean_sql_query
+
 
 # 로그 레벨 및 포맷 설정
 # logging.basicConfig(level=logging.INFO, format="🔧 [%(levelname)s] %(message)s")
@@ -28,46 +35,15 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")
 mcp = FastMCP(name="oracle-db") 
 
 
-# Utility
-def get_connection():
-    """
-    Oracle DB에 접속 
-    """
-    conn = oracledb.connect(
-        user=ORACLE_USER,
-        password=ORACLE_PASSWORD,
-        dsn=ORACLE_DSN
-    )
-    return conn
-
-def strip_code_block(text: str) -> str:
-    """
-    ```json ... ``` 또는 ``` ... ``` 감싼 부분 제거
-    """
-    if text.strip().startswith("```"):
-        return "\n".join(line for line in text.strip().splitlines() if not line.strip().startswith("```"))
-    return text
-
-def clean_sql_query(raw_sql: str) -> str:
-    """
-    SQL 문자열에서 개행 문자와 세미콜론을 제거하고 한 줄로 정리
-    """
-    # 1. 개행 문자 제거 + 여러 공백을 하나로 압축
-    one_liner = " ".join(raw_sql.strip().split())
-
-    # 2. 끝에 세미콜론 제거
-    return one_liner.rstrip(";")
-
-
 # MCP 서버 도구 추가
 @mcp.tool 
 def get_schema_info() -> str:
     """
-    View the schema of all tables owned by the current account for text-to-SQL conversion.
+    Text-to-SQL 변환을 위해 현재 계정이 소유한 모든 테이블의 스키마를 로드합니다.
     """
     schema_info = {"tables": {}}
 
-    conn = get_connection()
+    conn = get_connection(user=ORACLE_USER, pw=ORACLE_PASSWORD, dsn=ORACLE_DSN)
     cursor = conn.cursor()
 
     # 현재 계정이 소유한 모든 테이블 목록 조회
@@ -117,15 +93,15 @@ def get_schema_info() -> str:
 @mcp.tool 
 async def generate_sql(natural_query: str, schema_info: str) -> str: 
     """
-    Convert natural language question to SQL query with LLM.
+    LLM이 schema를 참조하여 자연어 질문을 SQL 쿼리로 변환합니다.
     """
     async with aiohttp.ClientSession() as session:
         system_prompt = (
             "당신은 사용자의 자연어 질문을 oracle 쿼리로 변환하는 시스템입니다.\n"
-            "아래의 DB Schema를 참고하여 사용자의 자연어 질문을 oracle 쿼리로 변환하세요.\n\n"
+            "아래의 DB Schema를 참고하여 사용자의 자연어 질문을 1개의 oracle 쿼리로 변환하세요.\n\n"
             "DB Schema:\n" + schema_info + "\n\n"
             "자연어 질문:\n" + natural_query + "\n\n"
-            "불필요한 설명 없이 변환된 oracle 쿼리만 답변으로 반환하세요:\n"
+            "불필요한 설명 없이 변환된 1개의 oracle 쿼리만 답변으로 반환하세요:\n"
         )
         payload = {
             "model": OLLAMA_MODEL,
@@ -148,28 +124,25 @@ async def generate_sql(natural_query: str, schema_info: str) -> str:
 @mcp.tool  
 def validate_sql(sql: str) -> Dict[str, Any]:
     """
-    In Oracle, SQL syntax validity is checked using the EXPLAIN PLAN FOR statement.
-    This attempts to parse the SQL statement.
-    It does not actually execute the statement, but it can detect syntax errors.
+    Oracle DB에서 EXPLAIN PLAN FOR 문을 사용해 SQL 문법 유효성을 검증합니다.
     """
-    conn = get_connection()
+    conn = get_connection(user=ORACLE_USER, pw=ORACLE_PASSWORD, dsn=ORACLE_DSN)
     cursor = conn.cursor()
 
     try: 
         cursor.execute("EXPLAIN PLAN FOR " + sql)  # 실제 실행은 안 함, 문법만 검사
-        return {"valid": True, "message": "SQL 유효함", "sql": sql}
+        return {"valid": True, "message": "SQL 유효함", "sql": sql} 
     
     except Exception as e:
-        return {"valid": False, "message": str(e), "sql": sql}
+        return {"valid": False, "message": str(e), "sql": sql} # 서버가 결과를 JSON-RPC 응답으로 직렬화 => Python False → JSON false로 변환
     
 
 @mcp.tool 
 def execute_sql(exec_sql: str) -> list:
     """
-    Executes a SELECT query on the Oracle database and returns the results.
-    INSERT, UPDATE, and DDL statements are not supported.
+    Oracle DB에서 SELECT 쿼리를 실행하고 결과를 반환합니다.(INSERT, UPDATE 및 DDL 지원 X)
     """
-    conn = get_connection()
+    conn = get_connection(user=ORACLE_USER, pw=ORACLE_PASSWORD, dsn=ORACLE_DSN)
     cursor = conn.cursor()
     
     try:
@@ -182,7 +155,10 @@ def execute_sql(exec_sql: str) -> list:
         columns: List[str] = [col[0] for col in cursor.description]
         rows = cursor.fetchall()
 
-        result = [dict(zip(columns, row)) for row in rows]
+        if rows:
+            result = [dict(zip(columns, row)) for row in rows]
+        else:
+            result = ["조회된 데이터가 없습니다."]
 
         cursor.close()
         conn.close()
