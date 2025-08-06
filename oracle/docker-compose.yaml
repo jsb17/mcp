@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  oracle-db:
+    image: gvenzl/oracle-free:latest   # Version: 23c Free, Service Name(PDB): FREEPDB1 
+    # image: gvenzl/oracle-xe:21-slim  # 21c가 필요하면 이 줄로 교체
+
+    container_name: oracle-db
+
+    ports:
+      - "1521:1521"   # SQL 접속용(sqlplus, Python, DBeaver 등)
+      - "5500:5500"   # 웹 기반 DB 관리 도구(EM Express, http://192.168.25.121:5500/em, SYSTEM / Oracle123 (관리자 계정으로 로그인))
+
+    environment:
+      ORACLE_PASSWORD: Oracle123     # Oracle DB 관리자 계정(SYS, SYSTEM) 초기 PW
+      APP_USER: sebin                # 일반 계정 ID
+      APP_USER_PASSWORD: sebin123    # 일반 계정 PW
+      ORACLE_CHARACTERSET: AL32UTF8  # 한글 깨짐 방지
+      # ORACLE_PWD_MODE: file        # (옵션) 컨테이너 로그에 비번 숨기기
+    
+    volumes:
+      - oracle_data:/opt/oracle/oradata  
+
+    # healthcheck:              
+    #   test: ["CMD-SHELL", "healthcheck.sh"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 10
+
+volumes:
+  oracle_data: 
