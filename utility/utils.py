@@ -1,4 +1,5 @@
 import oracledb
+from typing import List
 
 def get_connection(user: str, pw: str, dsn: str):
     """
@@ -65,3 +66,23 @@ def to_ollama_tool_description(tool) -> str:
             lines.append(f"- {name} ({type_}){req}: {desc}")
 
     return "\n".join(lines)
+
+def get_tool_planning_prompt(tool_descriptions: List[str]) -> str:
+        """도구 계획 프롬프트"""
+        return (
+            "당신은 사용자의 자연어 질문을 해결하기 위해 MCP 도구를 활용하는 시스템입니다.\n"
+            "아래는 사용 가능한 도구 목록입니다:\n\n"
+            + "\n\n".join(tool_descriptions) +
+            "\n\n필요한 도구만 선택하여 다음과 같은 JSON 배열 형식으로 반환하세요:\n"
+            '''[
+  {"function_name": "get_schema_info", "arguments": {}},
+  {"function_name": "generate_sql", "arguments": {"natural_query": "...", "schema_info": "..." }},
+  {"function_name": "validate_sql", "arguments": {"sql": "..." }},
+  {"function_name": "execute_sql", "arguments": {"exec_sql": "..." }}
+]'''
+            "\n\n메모리 관련 도구 사용법:\n"
+            "- 이전 대화를 조회하려면: get_messages\n"
+            "- 특정 키워드로 대화를 검색하려면: search_messages + query\n"
+            "- session_id는 자동으로 추가되므로 생략 가능합니다.\n\n"
+            "만일, 선택된 도구가 없다면 사전에 학습한 지식을 바탕으로 사용자의 질문에 대해 답변하세요.\n"
+        )

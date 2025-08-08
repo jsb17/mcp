@@ -1,0 +1,15 @@
+# MCP 
+fastmcp
+langchain-mcp-adapters
+aiohttp
+python-dotenv
+
+# LangGraph 
+langgraph
+langchain-core
+
+# Streamlit 
+streamlit
+
+# Oracle DB 
+oracledb
