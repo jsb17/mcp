@@ -46,8 +46,12 @@ mcp/
 
 ├── assets/             # 프로젝트 관련 이미지/다이어그램 등 
 
+├── docker/             
+        ├── Dockerfile  # 도커 이미지 빌드 스크립트 
+
 ├── .env                # 환경변수 (Ollama, Oracle DB 설정 등)
 ├── .gitignore          # Git 무시 파일 목록
+├── .dockerignore       # Docker 무시 파일 목록
 ├── .python-version     # 프로젝트에서 사용하는 Python 버전 명시                  
 ├── pyproject.toml      # 프로젝트 메타데이터 및 의존성
 ├── README.md           # 프로젝트 설명서      
