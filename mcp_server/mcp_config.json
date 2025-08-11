@@ -1,0 +1,16 @@
+{
+    "oracle-db": {
+        "command": "python3",
+        "args": [
+            "mcp_server/server_oracle-db.py"
+        ],
+        "transport": "stdio"
+    },
+    "memory": {
+        "command": "python3",
+        "args": [
+            "mcp_server/server_memory.py"
+        ],
+        "transport": "stdio"
+    }
+}

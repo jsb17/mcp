@@ -9,15 +9,16 @@ import logging
 from typing import Any, Dict, List
 
 import aiohttp # 비동기 HTTP 클라이언트(Ollama API 호출용)
-from dotenv import load_dotenv
 from fastmcp import FastMCP
+from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utility.utils import get_connection, strip_code_block, clean_sql_query
+from utils.utils import get_oracle_db_connection, get_generate_sql_tool_prompt, strip_code_block, clean_sql_query
 
 
 # 로그 레벨 및 포맷 설정
 # logging.basicConfig(level=logging.INFO, format="🔧 [%(levelname)s] %(message)s")
+
 
 load_dotenv()
 
@@ -43,7 +44,7 @@ def get_schema_info() -> str:
     """
     schema_info = {"tables": {}}
 
-    conn = get_connection(user=ORACLE_USER, pw=ORACLE_PASSWORD, dsn=ORACLE_DSN)
+    conn = get_oracle_db_connection(user=ORACLE_USER, pw=ORACLE_PASSWORD, dsn=ORACLE_DSN)
     cursor = conn.cursor()
 
     # 현재 계정이 소유한 모든 테이블 목록 조회
@@ -96,13 +97,7 @@ async def generate_sql(natural_query: str, schema_info: str) -> str:
     LLM이 schema를 참조하여 자연어 질문을 SQL 쿼리로 변환합니다.
     """
     async with aiohttp.ClientSession() as session:
-        system_prompt = (
-            "당신은 사용자의 자연어 질문을 oracle 쿼리로 변환하는 시스템입니다.\n"
-            "아래의 DB Schema를 참고하여 사용자의 자연어 질문을 1개의 oracle 쿼리로 변환하세요.\n\n"
-            "DB Schema:\n" + schema_info + "\n\n"
-            "자연어 질문:\n" + natural_query + "\n\n"
-            "불필요한 설명 없이 변환된 1개의 oracle 쿼리만 답변으로 반환하세요:\n"
-        )
+        system_prompt = get_generate_sql_tool_prompt(natural_query, schema_info)
         payload = {
             "model": OLLAMA_MODEL,
             "messages": [
@@ -126,7 +121,7 @@ def validate_sql(sql: str) -> Dict[str, Any]:
     """
     Oracle DB에서 EXPLAIN PLAN FOR 문을 사용해 SQL 문법 유효성을 검증합니다.
     """
-    conn = get_connection(user=ORACLE_USER, pw=ORACLE_PASSWORD, dsn=ORACLE_DSN)
+    conn = get_oracle_db_connection(user=ORACLE_USER, pw=ORACLE_PASSWORD, dsn=ORACLE_DSN)
     cursor = conn.cursor()
 
     try: 
@@ -142,7 +137,7 @@ def execute_sql(exec_sql: str) -> list:
     """
     Oracle DB에서 SELECT 쿼리를 실행하고 결과를 반환합니다.(INSERT, UPDATE 및 DDL 지원 X)
     """
-    conn = get_connection(user=ORACLE_USER, pw=ORACLE_PASSWORD, dsn=ORACLE_DSN)
+    conn = get_oracle_db_connection(user=ORACLE_USER, pw=ORACLE_PASSWORD, dsn=ORACLE_DSN)
     cursor = conn.cursor()
     
     try:

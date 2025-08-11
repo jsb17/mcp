@@ -1,11 +1,11 @@
 """
-Memory MCP 서버 - 사용자의 대화 이력을 저장하고 관리
+Memory MCP 서버 - 사용자의 대화 이력을 저장 및 조회/검색
 """
 
 import logging
 from datetime import datetime
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
+from typing import Dict, List, Any, Optional
 
 from fastmcp import FastMCP
 
