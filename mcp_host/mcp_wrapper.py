@@ -106,9 +106,11 @@ class ThreadSafeMCPWrapper:
                 
                 if tool_to_call:
                     try:
+                        # SQL 생성 도구는 더 긴 타임아웃 적용 (gpt-oss 모델 대응)
+                        timeout_value = 60.0 if tool_name == "generate_sql" else 10.0
                         return await asyncio.wait_for(
                             tool_to_call.ainvoke(args),
-                            timeout=10.0
+                            timeout=timeout_value
                         )
                     except asyncio.TimeoutError:
                         return f"도구 실행 타임아웃: {tool_name}"

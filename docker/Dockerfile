@@ -19,8 +19,7 @@ WORKDIR /mcp
 # 환경변수 설정 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PORT=8502
-
+    PORT=8501
 
 # 비루트 사용자 생성 (보안 목적)
 RUN useradd -m appuser
@@ -34,7 +33,7 @@ USER appuser
 # 소스 코드 복사 및 appuser로 권한 변경       
 COPY --chown=appuser:appuser . .                                      
 
-EXPOSE 8502
+EXPOSE 8501
 
 # Streamlit entrypoint
 CMD sh -c 'streamlit run mcp_host/app.py \

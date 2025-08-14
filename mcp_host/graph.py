@@ -82,15 +82,13 @@ class MCPAgent:
         
         self.graph = workflow.compile()
     
-
     async def run_query(self, question: str, session_id: str = None) -> str:
-        """질문 실행"""
-        print(f"🚀 [run_query] 질문 시작: {question}")
+        """질문 -> 그래프 실행"""
         if session_id is None:
             session_id = self.config.session_id
             
-        print(f"📝 [run_query] 사용자 메시지 저장")
         await self._save_message("user", question, session_id)
+        print(f"📝 [run_query] 사용자 메시지 저장")
         
         # 초기 상태 설정
         initial_state = {
@@ -102,21 +100,21 @@ class MCPAgent:
             "session_id": session_id,
         }
         
-        print(f"⚙️ [run_query] 그래프 실행 중...")
         # 그래프 실행
         final_state = await self.graph.ainvoke(initial_state)
         answer = final_state["final_answer"]
-        
-        print(f"💾 [run_query] 어시스턴트 메시지 저장")
+
         await self._save_message("assistant", answer, session_id)
+        print(f"💾 [run_query] 어시스턴트 메시지 저장")
         
-        print(f"✅ [run_query] 완료: {answer}")
-        return answer
+        # DataFrame이 존재하면 answer와 함께 반환
+        if final_state.get("dataframe") is not None:
+            return {"answer": answer, "dataframe": final_state["dataframe"]}
+        else:
+            return {"answer": answer}
     
     async def _save_message(self, role: str, content: str, session_id: str):
-        """메시지 저장 - 스레드 안전한 래퍼 사용"""
-        print(f"💾 [_save_message] 시작 - role: {role}, session: {session_id}")
-        
+        """메시지 저장"""
         try:
             result = await self.mcp_wrapper.execute_tool(
                 "save_message",

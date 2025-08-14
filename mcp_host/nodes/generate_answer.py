@@ -6,13 +6,11 @@ import os
 import sys
 import json
 import aiohttp
+import pandas as pd
 
 # 상위 디렉토리를 Python 경로에 추가
-sys.path.append(os.path.dirname(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from state import AgentState
-
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-sys.path.append(BASE_DIR)
 from utils.utils import get_generate_answer_node_prompt
 
 
@@ -21,16 +19,20 @@ async def generate_answer_node(state: AgentState, config) -> AgentState:
         print(f"🤖 [generate_answer_node] 시작")
         question = state["question"]
         executed_results = state.get("executed_results", [])
-        # state["dataframe"] = pd.DataFrame(executed_results)
         
         if not executed_results:
             print(f"🤖 [generate_answer_node] 도구 실행 결과 없음")
             state["final_answer"] = "도구를 사용할 수 없어 답변을 생성할 수 없습니다."
             return state
-        
+
+        for item in executed_results:
+            if item.get("function") == "execute_sql":
+                executed_results = json.loads(item["result"])
+                state["dataframe"] = pd.DataFrame(json.loads(item["result"]))
+                
         # 최종 답변 생성
         system_prompt = get_generate_answer_node_prompt(executed_results)
-        
+        print(f'[DEBUG] 최종 답변 SYS prompt: {system_prompt}')
         
         async with aiohttp.ClientSession() as session:
             payload = {

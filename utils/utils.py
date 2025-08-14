@@ -85,7 +85,7 @@ def get_plan_tools_node_prompt(tool_descriptions: List[str]) -> str:
         "당신은 사용자의 자연어 질문을 해결하기 위해 MCP 도구를 활용하는 시스템입니다.\n"
         "아래는 사용 가능한 도구 목록입니다:\n\n"
         + "\n\n".join(tool_descriptions) +
-        "\n\n이 중 필요한 도구만 선택하여 다음과 같은 JSON 배열 형식으로 반환하세요:\n"
+        "\n\n이 중 필요한 도구만 선택하여 반드시 다음과 같은 JSON 배열 형식으로 반환하세요:\n"
         '''[
   {"function_name": "get_schema_info", "arguments": {}},
   {"function_name": "generate_sql", "arguments": {"natural_query": "...", "schema_info": "..." }},
@@ -106,7 +106,7 @@ def get_generate_answer_node_prompt(executed_results: List[Dict]) -> str:
     """
     return (
         "다음은 MCP 도구 실행 결과입니다."
-        "이를 종합해 사용자 질문에 대한 답변을 자연스럽게 작성하세요:\n\n"
+        "실행 결과를 기반으로 하여 사용자 질문에 대한 답변을 자연스럽게 작성하세요:\n\n"
         + json.dumps(executed_results, indent=2, ensure_ascii=False)
     )
 
