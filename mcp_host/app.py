@@ -3,11 +3,8 @@ Streamlit 웹 UI - LangGraph 에이전트 인터페이스
 """
 
 import os 
-import re
-import json
 import time
 import asyncio
-import pandas as pd
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -82,7 +79,6 @@ with st.sidebar:
                     ollama_url=ollama_url,
                     ollama_model=ollama_model
                 )
-                print(f"[DEBUG] AgentConfig: {config.__dict__}")
                 
                 # 에이전트 초기화
                 agent = MCPAgent(config)
@@ -113,8 +109,15 @@ with st.sidebar:
     if st.button("🧹 MCP 서버 종료"):
         if 'agent' in st.session_state:
             try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                # 기존 이벤트 루프 확인 및 사용 (새 루프 생성 X)
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_closed():
+                        raise RuntimeError("Loop is closed")
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                
                 loop.run_until_complete(st.session_state.agent.cleanup())
                 
                 # 세션 상태 정리
@@ -135,13 +138,12 @@ st.markdown("Oracle DB와 메모리 관리가 가능한 AI 어시스턴트입니
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-
 # 채팅 히스토리 표시
 for message in st.session_state.messages:
-        if message["role"] == "dataframe":
-            st.dataframe(message["content"])
-        else:
-            st.chat_message(message["role"]).markdown(message["content"])
+    if message["role"] == "dataframe":
+        st.dataframe(message["content"])
+    else:
+        st.chat_message(message["role"]).markdown(message["content"])
 
 # 사용자 입력
 if prompt := st.chat_input("🗨️ 질문을 입력하세요."):
@@ -155,7 +157,7 @@ if prompt := st.chat_input("🗨️ 질문을 입력하세요."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    # 어시스턴트 응답
+    # 어시스턴트 응답 추가
     with st.chat_message("assistant"):
         with st.spinner("답변 생성 중..."):
             try:
@@ -171,7 +173,7 @@ if prompt := st.chat_input("🗨️ 질문을 입력하세요."):
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                 
-                print("[DEBUG] LangGraph Flow 시작")
+                print(f"\n\n\n🙍 [user question] {prompt}")
                 response = loop.run_until_complete(
                     st.session_state.agent.run_query(prompt, st.session_state.session_id)
                 )
@@ -179,44 +181,15 @@ if prompt := st.chat_input("🗨️ 질문을 입력하세요."):
                 end_time = time.time()
                 total_time = end_time - start_time
                 
-                print(f"[DEBUG] 총 답변 생성 시간: {total_time:.2f}초")
+                print(f"\n\n[DEBUG] 총 답변 생성 시간: {total_time:.2f}초")
                 print(f"[DEBUG] 최종 LLM 답변: {response}")
-                
-                # # 1. JSON 블록 추출: ``` 없이 바로 [ { ... } ] 로 감싸진 경우까지 지원
-                # json_match = re.search(r'(\[\s*\{.*?\}\s*\])', response, re.DOTALL)
 
-                # if json_match:
-                #     # 2. JSON 문자열 추출 및 제거
-                #     json_str = json_match.group(1)
-                #     try:
-                #         data = json.loads(json_str)
-                #         df = pd.DataFrame(data)
-
-                #         # 3. 자연어 설명 출력 (JSON 제외한 부분만)
-                #         natural_text = response.replace(json_str, "").strip()
-                #         natural_text = natural_text.replace("```", "").strip()
-                #         natural_text = natural_text.replace("json", "").strip()
-                #         if natural_text:
-                #             st.markdown(natural_text)
-
-                #         # 4. JSON 표 출력
-                #         st.dataframe(df)
-
-                #         st.session_state.messages.append({"role": "assistant", "content": natural_text})
-                #         st.session_state.messages.append({"role": "dataframe", "content": df})
-
-                #     except json.JSONDecodeError as e:
-                #         st.error(f"🚫 JSON 파싱 실패: {e}")
-                # else:
-                #     # JSON 블록이 없으면 전체 텍스트만 출력
-                #     st.markdown(response)
-                #     st.session_state.messages.append({"role": "assistant", "content": response})
+                # SQL 실행 결과를 데이터프레임 형태로 출력
                 if response.get("dataframe") is not None and not response.get("dataframe").empty:
                     st.dataframe(response.get("dataframe"))
                     st.session_state.messages.append({"role": "dataframe", "content": response.get("dataframe")})
                 # 어시스턴트 메시지 추가
-                with st.chat_message("assistant"):
-                    st.markdown(response.get("answer"))
+                st.markdown(response.get("answer"))
                 st.session_state.messages.append({"role": "assistant", "content": response.get("answer")})
                 
             except Exception as e:

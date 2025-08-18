@@ -33,16 +33,18 @@ mcp/
         ├── app.py           # Agent 실행 진입점: Streamlit 기반 웹 UI
 
 ├── mcp_server/
-        ├── mcp_config.json      # MCP Server 설정
-        ├── server_memory.py     # Memory MCP Server
-        ├── server_oracle-db.py  # Oracle DB MCP Server
+        ├── mcp_config.json       # MCP Server 설정
+        ├── mcp_tools_config.json # MCP Tool 설정
+        ├── server_memory.py      # Memory MCP Server
+        ├── server_oracle-db.py   # Oracle DB MCP Server
 
 ├── oracle/     
-        ├── docker-compose.yaml  # Oracle DB 도커 컨테이너 생성
-        ├── init-scripts.sql     # Oracle DB 초기화 SQL 스크립트
+        ├── EMS_init-scripts      # EMS 관련 DB 초기화 SQL 스크립트
+        ├── docker-compose.yaml   # Oracle DB 도커 컨테이너 생성
+        ├── init-scripts.sql      # Oracle DB 초기화 SQL 스크립트
 
 ├── utils/            
-        ├── utils.py             # 공통 유틸리티 함수 모음
+        ├── utils.py              # 공통 유틸리티 함수 모음
 
 ├── assets/             # 프로젝트 관련 이미지/다이어그램 등 
 

@@ -13,7 +13,7 @@ from fastmcp import FastMCP
 from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils.utils import get_oracle_db_connection, get_generate_sql_tool_prompt, strip_code_block, clean_sql_query
+from utils.utils import get_oracle_db_connection, get_generate_sql_tool_prompt, strip_code_block, strip_think_block, clean_sql_query
 
 
 # 로그 레벨 및 포맷 설정
@@ -103,6 +103,11 @@ async def generate_sql(natural_query: str, schema_info: str) -> str:
             "messages": [
                 {"role": "system", "content": system_prompt}
             ],
+            "options": {
+                "temperature": 0,     # 무작위성 제거
+                "top_p": 1,           # 확률 컷오프 제거
+                "repeat_penalty": 1   # 반복 억제 영향 최소화
+            },
             "stream": False
         }
         async with session.post(f"{OLLAMA_URL}/v1/chat/completions", json=payload) as resp:
@@ -111,6 +116,7 @@ async def generate_sql(natural_query: str, schema_info: str) -> str:
             # logging.info(f'[DEBUG] Generated SQL: {generated_sql}')
 
             cleaned_sql = strip_code_block(generated_sql)
+            cleaned_sql = strip_think_block(cleaned_sql) # qwen 모델 특화
             cleaned_sql = clean_sql_query(cleaned_sql)
 
             return cleaned_sql 

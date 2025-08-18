@@ -53,14 +53,13 @@ class MCPAgent:
         
         workflow.add_node("plan_tools", _plan_tools_wrapper)
         workflow.add_node("execute_tools", _execute_tools_wrapper)
-        workflow.add_node("generate_answer", _generate_answer_wrapper) # lambda state: generate_answer_node(state, self.config)
+        workflow.add_node("generate_answer", _generate_answer_wrapper) 
         
-        # 엣지 정의 - 조건부 라우팅
+        # 진입점 정의
         workflow.set_entry_point("plan_tools")
         
         # plan_tools에서 조건부 분기
         def should_execute_tools(state):
-
             # 도구 호출이 1개 이상이면 execute_tools로
             if state.get("tool_calls") and len(state["tool_calls"]) > 0:
                 return "execute_tools"
@@ -68,6 +67,7 @@ class MCPAgent:
             else:
                 return END
         
+        # 엣지 정의 
         workflow.add_conditional_edges(
             "plan_tools",
             should_execute_tools,
@@ -76,19 +76,17 @@ class MCPAgent:
                 END: END
             }
         )
-        
         workflow.add_edge("execute_tools", "generate_answer")
         workflow.add_edge("generate_answer", END)
         
         self.graph = workflow.compile()
     
     async def run_query(self, question: str, session_id: str = None) -> str:
-        """질문 -> 그래프 실행"""
+        """⭐(메인 로직) 질문 -> 그래프 실행"""
         if session_id is None:
             session_id = self.config.session_id
             
         await self._save_message("user", question, session_id)
-        print(f"📝 [run_query] 사용자 메시지 저장")
         
         # 초기 상태 설정
         initial_state = {
@@ -104,13 +102,13 @@ class MCPAgent:
         final_state = await self.graph.ainvoke(initial_state)
         answer = final_state["final_answer"]
 
-        await self._save_message("assistant", answer, session_id)
-        print(f"💾 [run_query] 어시스턴트 메시지 저장")
-        
         # DataFrame이 존재하면 answer와 함께 반환
         if final_state.get("dataframe") is not None:
+            await self._save_message("assistant", str(final_state.get("dataframe")), session_id)
             return {"answer": answer, "dataframe": final_state["dataframe"]}
+        # 그렇지 않으면 answer만 반환
         else:
+            await self._save_message("assistant", answer, session_id)
             return {"answer": answer}
     
     async def _save_message(self, role: str, content: str, session_id: str):
@@ -124,7 +122,7 @@ class MCPAgent:
                     "content": content
                 }
             )
-            print(f"💾 [_save_message] 완료: {str(result)[:100]}...")
+            print(f"💾 [_save_message] 완료: {role} - {content if len(content) < 100 else content[:100]+'...'}") 
         except Exception as e:
             print(f"💾 [_save_message] 실패: {str(e)}")
             import traceback
@@ -133,4 +131,3 @@ class MCPAgent:
     async def cleanup(self):
         """MCP 서버 세션 정리"""
         self.mcp_wrapper.cleanup()
-        print(f"🧹 [cleanup] 정리 완료")

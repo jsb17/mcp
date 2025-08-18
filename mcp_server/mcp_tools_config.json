@@ -1,0 +1,31 @@
+{
+    "get_schema_info": {
+        "arguments": {},
+        "returns": "string" 
+    },
+    "generate_sql": {
+        "arguments": {"natural_query": "string", "schema_info": "string"},
+        "returns": "string"
+    },
+    "validate_sql": {
+        "arguments": {"sql": "string"},
+        "returns": "object"
+    },
+    "execute_sql": {
+        "arguments": {"exec_sql": "string"},
+        "returns": "array"
+    },
+    
+    "save_message": {
+        "arguments": {"session_id": "string", "role": "string", "content": "string", "message_id": "string"},
+        "returns": "object"
+    },
+    "get_messages": {
+        "arguments": {"session_id": "string", "limit": "integer"},
+        "returns": "object"
+    },
+    "search_messages": {
+        "arguments": {"session_id": "string", "keyword": "string", "limit": "integer"}, 
+        "returns": "object"
+    }
+}

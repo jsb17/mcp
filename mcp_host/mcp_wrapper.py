@@ -21,7 +21,6 @@ from typing import Any, Dict
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
-
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
@@ -32,6 +31,7 @@ class ThreadSafeMCPWrapper:
         self.loop = None
         self.mcp_client = None
         self.server_sessions = {}
+        self.session_contexts = {}  
         self.all_tools = []
         self._initialized = False
         
@@ -63,11 +63,12 @@ class ThreadSafeMCPWrapper:
                             session = self.mcp_client.session(server_name)
                             session_context = await session.__aenter__() # 서버 시작
                             self.server_sessions[server_name] = session
+                            self.session_contexts[server_name] = session_context
                             
                             # 각 서버 별로 존재하는 모든 도구들 load & all_tools에 저장 
                             tools = await load_mcp_tools(session_context) 
                             self.all_tools.extend(tools)
-                            print(f"✅ {server_name} 초기화 완료 ({len(tools)}개 도구)")
+                            print(f"✅ {server_name} MCP 서버 초기화 완료({len(tools)}개 도구)")
                             
                             for tool in tools:
                                 print(f"  - {tool.name}")
@@ -75,7 +76,7 @@ class ThreadSafeMCPWrapper:
                         except Exception as e:
                             print(f"❌ {server_name} 초기화 실패: {e}")
                     
-                    print(f"🔗 [ThreadSafeMCPWrapper] 총 {len(self.all_tools)}개 도구 로드 완료")
+                    print(f"\n🔗 [ThreadSafeMCPWrapper] 총 {len(self.all_tools)}개 도구 로드 완료")
                     self._initialized = True
                 
                 finally:
@@ -87,7 +88,6 @@ class ThreadSafeMCPWrapper:
         # 별도 스레드에서 실행 (streamlit과 MCP 서버 세션 간 충돌 막기 위해)
         await asyncio.get_event_loop().run_in_executor(self.executor, _init_in_thread)
         
-
     async def execute_tool(self, tool_name: str, args: Dict) -> Any:
         """
         MCP 도구 실행
@@ -129,22 +129,29 @@ class ThreadSafeMCPWrapper:
         
     def cleanup(self):
         """
-        MCP 서버 세션 정리
+        MCP 서버 세션 정리 - 동기적 방식
         """
-        if self.loop and not self.loop.is_closed():
-            def _cleanup_in_thread():
-                async def _async_cleanup():
-                    for server_name, session in self.server_sessions.items():
-                        try:
-                            await session.__aexit__(None, None, None)
-                        except Exception as e:
-                            print(f"세션 정리 오류: {e}")
-                    self.server_sessions.clear()
-                    self.all_tools.clear()
-                
-                self.loop.run_until_complete(_async_cleanup())
-                self.loop.close()
-                
-            self.executor.submit(_cleanup_in_thread)
         
-        self.executor.shutdown(wait=True)
+        # 1. 상태 플래그 먼저 변경
+        self._initialized = False
+        
+        # 2. 세션과 도구 정리
+        self.session_contexts.clear()
+        self.server_sessions.clear() 
+        self.all_tools.clear()
+        
+        # 3. executor 종료
+        try:
+            if hasattr(self, 'executor') and self.executor:
+                self.executor.shutdown(wait=False)  # 강제 종료
+        except Exception as e:
+            print(f"executor 종료 오류 (무시): {e}")
+        
+        # 4. 이벤트 루프 정리
+        try:
+            if hasattr(self, 'loop') and self.loop and not self.loop.is_closed():
+                self.loop.call_soon_threadsafe(self.loop.stop)
+        except Exception as e:
+            print(f"루프 정리 오류 (무시): {e}")
+        
+        print(f"\n🧹 [cleanup] 정리 완료")
