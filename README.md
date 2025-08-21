@@ -60,6 +60,7 @@ mcp/
 
 
 └── REMOTE_MCP_SERVER   # 원격 MCP 서버 관련 폴더(LangGraph Agent 실행 시에는 필요X)
+        ├── .venv       # 가상환경
         ├── mcp_server
                 ├── server_memory.py      # Memory MCP Server
                 ├── server_oracle-db.py   # Oracle DB MCP Server
@@ -67,7 +68,6 @@ mcp/
                 ├── utils.py              # 공통 유틸리티 함수 모음
         
         ├── .env                # 환경변수 (Ollama, Oracle DB, 원격 MCP 서버 URL 설정 등)
-        ├── .gitignore          # Git 무시 파일 목록
         ├── .python-version     # 프로젝트에서 사용하는 Python 버전 명시                  
         ├── pyproject.toml      # 프로젝트 메타데이터 및 의존성
         ├── README.md           # 프로젝트 설명서      
