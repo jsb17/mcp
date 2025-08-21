@@ -35,8 +35,6 @@ mcp/
 ├── mcp_server/
         ├── mcp_config.json       # MCP Server 설정
         ├── mcp_tools_config.json # MCP Tool 설정
-        ├── server_memory.py      # Memory MCP Server
-        ├── server_oracle-db.py   # Oracle DB MCP Server
 
 ├── oracle/     
         ├── EMS_init-scripts      # EMS 관련 DB 초기화 SQL 스크립트
@@ -51,18 +49,57 @@ mcp/
 ├── docker/             
         ├── Dockerfile  # 도커 이미지 빌드 스크립트 
 
-├── .env                # 환경변수 (Ollama, Oracle DB 설정 등)
+├── .env                # 환경변수 (Ollama, Oracle DB, 원격 MCP 서버 URL 설정 등)
 ├── .gitignore          # Git 무시 파일 목록
 ├── .dockerignore       # Docker 무시 파일 목록
 ├── .python-version     # 프로젝트에서 사용하는 Python 버전 명시                  
 ├── pyproject.toml      # 프로젝트 메타데이터 및 의존성
 ├── README.md           # 프로젝트 설명서      
 ├── requirements.txt    # 필요한 Python 패키지 목록(pip용)
-└── uv.lock             # 의존성 잠금 파일(uv용)
+├── uv.lock             # 의존성 잠금 파일(uv용)
+
+
+└── REMOTE_MCP_SERVER   # 원격 MCP 서버 관련 폴더(LangGraph Agent 실행 시에는 필요X)
+        ├── mcp_server
+                ├── server_memory.py      # Memory MCP Server
+                ├── server_oracle-db.py   # Oracle DB MCP Server
+        ├── utils
+                ├── utils.py              # 공통 유틸리티 함수 모음
+        
+        ├── .env                # 환경변수 (Ollama, Oracle DB, 원격 MCP 서버 URL 설정 등)
+        ├── .gitignore          # Git 무시 파일 목록
+        ├── .python-version     # 프로젝트에서 사용하는 Python 버전 명시                  
+        ├── pyproject.toml      # 프로젝트 메타데이터 및 의존성
+        ├── README.md           # 프로젝트 설명서      
+        ├── requirements.txt    # 필요한 Python 패키지 목록(pip용)
+        └── uv.lock             # 의존성 잠금 파일(uv용)
 ```
 
 
-## 🚀 실행 방법
+## 🚀 원격 MCP 서버 실행 방법 (streamable-http 통신)
+
+1. `REMOTE_MCP_SERVER` 폴더만 따로 다운로드한 뒤, MCP 서버를 실행시키고자 하는 환경에 업로드한다.
+
+    `cd REMOTE_MCP_SERVER`
+
+2. 가상환경 활성화
+
+    `source .venv/bin/activate`
+
+3. python 패키지 관리 도구 설치
+
+    `apt install python3-pip`
+
+4. MCP 서버 구동에 필요한 패키지 설치
+
+    `pip install -r requirements.txt`
+
+5. MCP 서버 실행
+
+    `python3 mcp_server/server_oracle-db.py`
+
+
+## 🚀 LangGraph Agent 실행 방법
 
 1. 패키지 설치
 

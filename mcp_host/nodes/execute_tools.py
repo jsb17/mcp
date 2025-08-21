@@ -16,9 +16,9 @@ async def _execute_tool(fn_name: str, args: Dict, mcp_wrapper) -> Any:
         print(f"\n▶️ 실행 중: {fn_name}({args})") 
         
         result = await mcp_wrapper.execute_tool(fn_name, args)
-
+        
         if fn_name != "generate_sql":
-            print(f"🆗 실행 결과: {fn_name}():\n{str(result)[:100]}...")
+            print(f"🆗 실행 결과: {fn_name}():\n{str(result)[:100]+'...' if len(str(result)) > 100 else str(result)}")
         else:
             print(f"🆗 실행 결과: {fn_name}():\n{str(result)}")
         

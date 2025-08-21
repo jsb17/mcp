@@ -1,16 +1,10 @@
 {
     "oracle-db": {
-        "command": "python3",
-        "args": [
-            "mcp_server/server_oracle-db.py"
-        ],
-        "transport": "stdio"
+        "transport": "streamable_http",
+        "url": "http://192.168.25.121:8000/mcp"
     },
     "memory": {
-        "command": "python3",
-        "args": [
-            "mcp_server/server_memory.py"
-        ],
-        "transport": "stdio"
+        "transport": "streamable_http", 
+        "url": "http://192.168.25.121:8001/mcp"
     }
 }

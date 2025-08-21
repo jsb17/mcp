@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# 예외
+!REMOTE_MCP_SERVER/.venv/

@@ -1,0 +1,7 @@
+# MCP 
+fastmcp
+aiohttp
+python-dotenv
+
+# Oracle DB 
+oracledb
